@@ -407,16 +407,11 @@ class EmployeeAttritionPredictor:
     
     def preprocess_data_full(self):
         """
-        Alternative preprocessing using all available features.
-        
-        This method:
-        1. Removes non-informative columns
-        2. Handles categorical variables
-        3. Applies feature scaling
-        4. Prepares data for model training
-        
-        Returns:
-            tuple: (X, y) preprocessed features and target
+        Use all 35 original features with necessary preprocessing:
+        1. Handle missing values (NaN)
+        2. Label encoding for categorical variables
+        3. StandardScaler for numerical features
+        No feature removal or engineering
         """
         print("\n" + "="*60)
         print("3. DATA PREPROCESSING - FULL FEATURES")
@@ -424,49 +419,46 @@ class EmployeeAttritionPredictor:
         
         self.processed_data = self.data.copy()
         
-        # Remove rows with any NaN values (if any exist)
-        initial_rows = len(self.processed_data)
-        nan_count = self.processed_data.isna().sum().sum()
+        # Handle missing values first
+        nan_count = self.processed_data.isna().sum()
+        if nan_count.sum() > 0:
+            print("\nMissing values found:")
+            print(nan_count[nan_count > 0])
+            # Fill missing values with mean for numeric columns and mode for categorical columns
+            numeric_cols = self.processed_data.select_dtypes(include=['int64', 'float64']).columns
+            categorical_cols = self.processed_data.select_dtypes(include=['object']).columns
+            
+            for col in numeric_cols:
+                self.processed_data[col].fillna(self.processed_data[col].mean(), inplace=True)
+            for col in categorical_cols:
+                self.processed_data[col].fillna(self.processed_data[col].mode()[0], inplace=True)
+            print("Missing values have been handled")
         
-        if nan_count > 0:
-            print(f"\nFound {nan_count} NaN values in the dataset")
-            self.processed_data = self.processed_data.dropna()
-            removed_rows = initial_rows - len(self.processed_data)
-            print(f"Removed {removed_rows} rows containing NaN values")
-            print(f"Remaining rows: {len(self.processed_data)}")
-        else:
-            print(f"\n✓ No NaN values found in the dataset")
-            print(f"All {initial_rows} rows retained")
-        
-        # Handle target variable first
+        # Handle target variable
         self.y = (self.processed_data['Attrition'] == 'Yes').astype(int)
         self.processed_data = self.processed_data.drop('Attrition', axis=1)
         
-        # Remove non-informative columns
-        columns_to_drop = ['EmployeeNumber', 'EmployeeCount', 'StandardHours', 
-                          'Over18', 'DailyRate', 'HourlyRate', 'MonthlyRate']
-        
-        # Check for constant columns
-        constant_cols = []
-        for col in self.processed_data.columns:
-            if self.processed_data[col].nunique() <= 1:
-                constant_cols.append(col)
-        
-        columns_to_drop.extend(constant_cols)
-        columns_to_drop = [col for col in columns_to_drop if col in self.processed_data.columns]
-        
-        if columns_to_drop:
-            print(f"Removing non-informative columns: {columns_to_drop}")
-            self.processed_data = self.processed_data.drop(columns=columns_to_drop)
-        
-        # One-hot encoding for categorical variables
+        # Handle categorical variables
         categorical_cols = self.processed_data.select_dtypes(include=['object']).columns
-        print(f"Applying one-hot encoding to: {list(categorical_cols)}")
+        print(f"\nEncoding categorical variables: {list(categorical_cols)}")
         
-        self.processed_data = pd.get_dummies(self.processed_data, columns=categorical_cols, drop_first=True)
+        # Label encoding for ordinal variables
+        ordinal_cols = ['Education', 'EnvironmentSatisfaction', 'JobInvolvement', 
+                       'JobLevel', 'JobSatisfaction', 'PerformanceRating', 
+                       'RelationshipSatisfaction', 'WorkLifeBalance']
+        
+        for col in ordinal_cols:
+            if col in self.processed_data.columns:
+                self.processed_data[col] = self.processed_data[col].astype(int)
+        
+        # Simple label encoding for nominal variables
+        nominal_cols = [col for col in categorical_cols if col not in ordinal_cols]
+        for col in nominal_cols:
+            if col in self.processed_data.columns:
+                self.processed_data[col] = pd.factorize(self.processed_data[col])[0]
         
         # Apply StandardScaler to all features
-        print(f"\nApplying StandardScaler to {self.processed_data.shape[1]} features")
+        print(f"\nApplying StandardScaler to all features")
         self.scaler = StandardScaler()
         scaled_data = self.scaler.fit_transform(self.processed_data)
         
@@ -477,6 +469,9 @@ class EmployeeAttritionPredictor:
         print(f"Final dataset shape: {self.X.shape}")
         print(f"Target distribution: {np.bincount(self.y)}")
         print(f"Total features used: {self.X.shape[1]}")
+        print("\nFeatures used:")
+        for idx, col in enumerate(self.X.columns, 1):
+            print(f"{idx:2d}. {col}")
         
         return self.X, self.y
     
