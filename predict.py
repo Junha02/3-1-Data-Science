@@ -25,7 +25,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
-from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix
+from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 import xgboost as xgb
 import warnings
 from sklearn.model_selection import GridSearchCV
@@ -1870,26 +1870,53 @@ def simple_main():
     for name, model in models.items():
         # Train-Test 성능
         model.fit(X_train_full, y_train_full)
-        train_score = roc_auc_score(y_train_full, model.predict_proba(X_train_full)[:, 1])
-        test_score = roc_auc_score(y_test_full, model.predict_proba(X_test_full)[:, 1])
-        gap = train_score - test_score
+        
+        # AUC 점수
+        train_auc = roc_auc_score(y_train_full, model.predict_proba(X_train_full)[:, 1])
+        test_auc = roc_auc_score(y_test_full, model.predict_proba(X_test_full)[:, 1])
+        gap = train_auc - test_auc
+        
+        # 실제 예측 정확도 지표들
+        train_pred = model.predict(X_train_full)
+        test_pred = model.predict(X_test_full)
+        
+        train_accuracy = accuracy_score(y_train_full, train_pred)
+        test_accuracy = accuracy_score(y_test_full, test_pred)
+        test_precision = precision_score(y_test_full, test_pred)
+        test_recall = recall_score(y_test_full, test_pred)
+        test_f1 = f1_score(y_test_full, test_pred)
         
         # Cross-validation 성능
         cv_scores = cross_val_score(model, predictor_full.X, predictor_full.y, cv=5, scoring='roc_auc')
+        cv_accuracy = cross_val_score(model, predictor_full.X, predictor_full.y, cv=5, scoring='accuracy')
+        
         full_results[name] = {
             'mean': cv_scores.mean(),
             'std': cv_scores.std(),
-            'train_score': train_score,
-            'test_score': test_score,
+            'train_auc': train_auc,
+            'test_auc': test_auc,
             'gap': gap,
-            'cv_scores': cv_scores
+            'cv_scores': cv_scores,
+            'train_accuracy': train_accuracy,
+            'test_accuracy': test_accuracy,
+            'test_precision': test_precision,
+            'test_recall': test_recall,
+            'test_f1': test_f1,
+            'cv_accuracy_mean': cv_accuracy.mean(),
+            'cv_accuracy_std': cv_accuracy.std()
         }
         
         print(f"\n{name}:")
-        print(f"  Train AUC: {train_score:.4f}")
-        print(f"  Test AUC:  {test_score:.4f}")
+        print(f"  Train AUC: {train_auc:.4f}")
+        print(f"  Test AUC:  {test_auc:.4f}")
         print(f"  Gap:       {gap:.4f}")
-        print(f"  CV Score:  {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+        print(f"  CV AUC:    {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+        print(f"  Train Acc: {train_accuracy:.4f}")
+        print(f"  Test Acc:  {test_accuracy:.4f}")
+        print(f"  CV Acc:    {cv_accuracy.mean():.4f} ± {cv_accuracy.std():.4f}")
+        print(f"  Precision: {test_precision:.4f}")
+        print(f"  Recall:    {test_recall:.4f}")
+        print(f"  F1-Score:  {test_f1:.4f}")
     
     # 2. Derived Features (10개) 실험
     print("\n🟢 DERIVED FEATURES EXPERIMENT (10개)")
@@ -1915,26 +1942,53 @@ def simple_main():
     for name, model in models.items():
         # Train-Test 성능
         model.fit(X_train_derived, y_train_derived)
-        train_score = roc_auc_score(y_train_derived, model.predict_proba(X_train_derived)[:, 1])
-        test_score = roc_auc_score(y_test_derived, model.predict_proba(X_test_derived)[:, 1])
-        gap = train_score - test_score
+        
+        # AUC 점수
+        train_auc = roc_auc_score(y_train_derived, model.predict_proba(X_train_derived)[:, 1])
+        test_auc = roc_auc_score(y_test_derived, model.predict_proba(X_test_derived)[:, 1])
+        gap = train_auc - test_auc
+        
+        # 실제 예측 정확도 지표들
+        train_pred = model.predict(X_train_derived)
+        test_pred = model.predict(X_test_derived)
+        
+        train_accuracy = accuracy_score(y_train_derived, train_pred)
+        test_accuracy = accuracy_score(y_test_derived, test_pred)
+        test_precision = precision_score(y_test_derived, test_pred)
+        test_recall = recall_score(y_test_derived, test_pred)
+        test_f1 = f1_score(y_test_derived, test_pred)
         
         # Cross-validation 성능
         cv_scores = cross_val_score(model, predictor_derived.X, predictor_derived.y, cv=5, scoring='roc_auc')
+        cv_accuracy = cross_val_score(model, predictor_derived.X, predictor_derived.y, cv=5, scoring='accuracy')
+        
         derived_results[name] = {
             'mean': cv_scores.mean(),
             'std': cv_scores.std(),
-            'train_score': train_score,
-            'test_score': test_score,
+            'train_auc': train_auc,
+            'test_auc': test_auc,
             'gap': gap,
-            'cv_scores': cv_scores
+            'cv_scores': cv_scores,
+            'train_accuracy': train_accuracy,
+            'test_accuracy': test_accuracy,
+            'test_precision': test_precision,
+            'test_recall': test_recall,
+            'test_f1': test_f1,
+            'cv_accuracy_mean': cv_accuracy.mean(),
+            'cv_accuracy_std': cv_accuracy.std()
         }
         
         print(f"\n{name}:")
-        print(f"  Train AUC: {train_score:.4f}")
-        print(f"  Test AUC:  {test_score:.4f}")
+        print(f"  Train AUC: {train_auc:.4f}")
+        print(f"  Test AUC:  {test_auc:.4f}")
         print(f"  Gap:       {gap:.4f}")
-        print(f"  CV Score:  {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+        print(f"  CV AUC:    {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+        print(f"  Train Acc: {train_accuracy:.4f}")
+        print(f"  Test Acc:  {test_accuracy:.4f}")
+        print(f"  CV Acc:    {cv_accuracy.mean():.4f} ± {cv_accuracy.std():.4f}")
+        print(f"  Precision: {test_precision:.4f}")
+        print(f"  Recall:    {test_recall:.4f}")
+        print(f"  F1-Score:  {test_f1:.4f}")
     
     # 3. 결과 비교 및 시각화
     print("\n📊 FEATURES 비교 결과")
@@ -1946,36 +2000,64 @@ def simple_main():
     
     # 기본 모델들의 평균 성능 계산
     full_base_avg = {
-        'train_score': np.mean([full_results[m]['train_score'] for m in base_model_names]),
-        'test_score': np.mean([full_results[m]['test_score'] for m in base_model_names]),
+        'train_auc': np.mean([full_results[m]['train_auc'] for m in base_model_names]),
+        'test_auc': np.mean([full_results[m]['test_auc'] for m in base_model_names]),
         'cv_mean': np.mean([full_results[m]['mean'] for m in base_model_names]),
         'cv_std': np.mean([full_results[m]['std'] for m in base_model_names]),
-        'gap': np.mean([full_results[m]['gap'] for m in base_model_names])
+        'gap': np.mean([full_results[m]['gap'] for m in base_model_names]),
+        'train_accuracy': np.mean([full_results[m]['train_accuracy'] for m in base_model_names]),
+        'test_accuracy': np.mean([full_results[m]['test_accuracy'] for m in base_model_names]),
+        'test_precision': np.mean([full_results[m]['test_precision'] for m in base_model_names]),
+        'test_recall': np.mean([full_results[m]['test_recall'] for m in base_model_names]),
+        'test_f1': np.mean([full_results[m]['test_f1'] for m in base_model_names]),
+        'cv_accuracy_mean': np.mean([full_results[m]['cv_accuracy_mean'] for m in base_model_names]),
+        'cv_accuracy_std': np.mean([full_results[m]['cv_accuracy_std'] for m in base_model_names])
     }
     
     derived_base_avg = {
-        'train_score': np.mean([derived_results[m]['train_score'] for m in base_model_names]),
-        'test_score': np.mean([derived_results[m]['test_score'] for m in base_model_names]),
+        'train_auc': np.mean([derived_results[m]['train_auc'] for m in base_model_names]),
+        'test_auc': np.mean([derived_results[m]['test_auc'] for m in base_model_names]),
         'cv_mean': np.mean([derived_results[m]['mean'] for m in base_model_names]),
         'cv_std': np.mean([derived_results[m]['std'] for m in base_model_names]),
-        'gap': np.mean([derived_results[m]['gap'] for m in base_model_names])
+        'gap': np.mean([derived_results[m]['gap'] for m in base_model_names]),
+        'train_accuracy': np.mean([derived_results[m]['train_accuracy'] for m in base_model_names]),
+        'test_accuracy': np.mean([derived_results[m]['test_accuracy'] for m in base_model_names]),
+        'test_precision': np.mean([derived_results[m]['test_precision'] for m in base_model_names]),
+        'test_recall': np.mean([derived_results[m]['test_recall'] for m in base_model_names]),
+        'test_f1': np.mean([derived_results[m]['test_f1'] for m in base_model_names]),
+        'cv_accuracy_mean': np.mean([derived_results[m]['cv_accuracy_mean'] for m in base_model_names]),
+        'cv_accuracy_std': np.mean([derived_results[m]['cv_accuracy_std'] for m in base_model_names])
     }
     
     # 앙상블 모델들의 평균 성능 계산
     full_ensemble_avg = {
-        'train_score': np.mean([full_results[m]['train_score'] for m in ensemble_model_names]),
-        'test_score': np.mean([full_results[m]['test_score'] for m in ensemble_model_names]),
+        'train_auc': np.mean([full_results[m]['train_auc'] for m in ensemble_model_names]),
+        'test_auc': np.mean([full_results[m]['test_auc'] for m in ensemble_model_names]),
         'cv_mean': np.mean([full_results[m]['mean'] for m in ensemble_model_names]),
         'cv_std': np.mean([full_results[m]['std'] for m in ensemble_model_names]),
-        'gap': np.mean([full_results[m]['gap'] for m in ensemble_model_names])
+        'gap': np.mean([full_results[m]['gap'] for m in ensemble_model_names]),
+        'train_accuracy': np.mean([full_results[m]['train_accuracy'] for m in ensemble_model_names]),
+        'test_accuracy': np.mean([full_results[m]['test_accuracy'] for m in ensemble_model_names]),
+        'test_precision': np.mean([full_results[m]['test_precision'] for m in ensemble_model_names]),
+        'test_recall': np.mean([full_results[m]['test_recall'] for m in ensemble_model_names]),
+        'test_f1': np.mean([full_results[m]['test_f1'] for m in ensemble_model_names]),
+        'cv_accuracy_mean': np.mean([full_results[m]['cv_accuracy_mean'] for m in ensemble_model_names]),
+        'cv_accuracy_std': np.mean([full_results[m]['cv_accuracy_std'] for m in ensemble_model_names])
     }
     
     derived_ensemble_avg = {
-        'train_score': np.mean([derived_results[m]['train_score'] for m in ensemble_model_names]),
-        'test_score': np.mean([derived_results[m]['test_score'] for m in ensemble_model_names]),
+        'train_auc': np.mean([derived_results[m]['train_auc'] for m in ensemble_model_names]),
+        'test_auc': np.mean([derived_results[m]['test_auc'] for m in ensemble_model_names]),
         'cv_mean': np.mean([derived_results[m]['mean'] for m in ensemble_model_names]),
         'cv_std': np.mean([derived_results[m]['std'] for m in ensemble_model_names]),
-        'gap': np.mean([derived_results[m]['gap'] for m in ensemble_model_names])
+        'gap': np.mean([derived_results[m]['gap'] for m in ensemble_model_names]),
+        'train_accuracy': np.mean([derived_results[m]['train_accuracy'] for m in ensemble_model_names]),
+        'test_accuracy': np.mean([derived_results[m]['test_accuracy'] for m in ensemble_model_names]),
+        'test_precision': np.mean([derived_results[m]['test_precision'] for m in ensemble_model_names]),
+        'test_recall': np.mean([derived_results[m]['test_recall'] for m in ensemble_model_names]),
+        'test_f1': np.mean([derived_results[m]['test_f1'] for m in ensemble_model_names]),
+        'cv_accuracy_mean': np.mean([derived_results[m]['cv_accuracy_mean'] for m in ensemble_model_names]),
+        'cv_accuracy_std': np.mean([derived_results[m]['cv_accuracy_std'] for m in ensemble_model_names])
     }
     
     # 성능 비교 시각화
@@ -1989,19 +2071,19 @@ def simple_main():
     
     # 기본 모델 막대
     plt.bar(x - width/2, 
-            [full_base_avg['train_score'], full_base_avg['test_score'], full_base_avg['cv_mean']], 
+            [full_base_avg['train_auc'], full_base_avg['test_auc'], full_base_avg['cv_mean']], 
             width, label='Full Features (Base)', color='#FF6B6B', alpha=0.8)
     plt.bar(x + width/2, 
-            [derived_base_avg['train_score'], derived_base_avg['test_score'], derived_base_avg['cv_mean']], 
+            [derived_base_avg['train_auc'], derived_base_avg['test_auc'], derived_base_avg['cv_mean']], 
             width, label='Derived Features (Base)', color='#4ECDC4', alpha=0.8)
     
     # 앙상블 모델 막대 (점선 테두리로 표시)
     plt.bar(x - width/2, 
-            [full_ensemble_avg['train_score'], full_ensemble_avg['test_score'], full_ensemble_avg['cv_mean']], 
+            [full_ensemble_avg['train_auc'], full_ensemble_avg['test_auc'], full_ensemble_avg['cv_mean']], 
             width, label='Full Features (Ensemble)', color='none', 
             edgecolor='#FF6B6B', linestyle='--', linewidth=2)
     plt.bar(x + width/2, 
-            [derived_ensemble_avg['train_score'], derived_ensemble_avg['test_score'], derived_ensemble_avg['cv_mean']], 
+            [derived_ensemble_avg['train_auc'], derived_ensemble_avg['test_auc'], derived_ensemble_avg['cv_mean']], 
             width, label='Derived Features (Ensemble)', color='none',
             edgecolor='#4ECDC4', linestyle='--', linewidth=2)
     
@@ -2013,8 +2095,8 @@ def simple_main():
     plt.grid(True, alpha=0.3)
     
     # y축 범위 설정
-    min_score = min(full_base_avg['test_score'], derived_base_avg['test_score'],
-                   full_ensemble_avg['test_score'], derived_ensemble_avg['test_score']) - 0.05
+    min_score = min(full_base_avg['test_auc'], derived_base_avg['test_auc'],
+                   full_ensemble_avg['test_auc'], derived_ensemble_avg['test_auc']) - 0.05
     plt.ylim(max(0.5, min_score), 1.0)
     
     # 2. Train-Test Gap 비교
@@ -2048,16 +2130,24 @@ def simple_main():
     print(f"• Feature 수 감소: {feature_reduction}개 ({reduction_pct:.1f}%)")
     
     print(f"\n• Full Features:")
-    print(f"  - 기본 모델 CV Score: {full_base_avg['cv_mean']:.4f} ± {full_base_avg['cv_std']:.4f}")
-    print(f"  - 앙상블 CV Score: {full_ensemble_avg['cv_mean']:.4f} ± {full_ensemble_avg['cv_std']:.4f}")
+    print(f"  - 기본 모델 CV AUC: {full_base_avg['cv_mean']:.4f} ± {full_base_avg['cv_std']:.4f}")
+    print(f"  - 앙상블 CV AUC: {full_ensemble_avg['cv_mean']:.4f} ± {full_ensemble_avg['cv_std']:.4f}")
     print(f"  - 기본 모델 Gap: {full_base_avg['gap']:.4f}")
     print(f"  - 앙상블 Gap: {full_ensemble_avg['gap']:.4f}")
+    print(f"  - Test Accuracy: {full_base_avg['test_accuracy']:.4f}")
+    print(f"  - Test Precision: {full_base_avg['test_precision']:.4f}")
+    print(f"  - Test Recall: {full_base_avg['test_recall']:.4f}")
+    print(f"  - Test F1-Score: {full_base_avg['test_f1']:.4f}")
     
     print(f"\n• Derived Features:")
-    print(f"  - 기본 모델 CV Score: {derived_base_avg['cv_mean']:.4f} ± {derived_base_avg['cv_std']:.4f}")
-    print(f"  - 앙상블 CV Score: {derived_ensemble_avg['cv_mean']:.4f} ± {derived_ensemble_avg['cv_std']:.4f}")
+    print(f"  - 기본 모델 CV AUC: {derived_base_avg['cv_mean']:.4f} ± {derived_base_avg['cv_std']:.4f}")
+    print(f"  - 앙상블 CV AUC: {derived_ensemble_avg['cv_mean']:.4f} ± {derived_ensemble_avg['cv_std']:.4f}")
     print(f"  - 기본 모델 Gap: {derived_base_avg['gap']:.4f}")
     print(f"  - 앙상블 Gap: {derived_ensemble_avg['gap']:.4f}")
+    print(f"  - Test Accuracy: {derived_base_avg['test_accuracy']:.4f}")
+    print(f"  - Test Precision: {derived_base_avg['test_precision']:.4f}")
+    print(f"  - Test Recall: {derived_base_avg['test_recall']:.4f}")
+    print(f"  - Test F1-Score: {derived_base_avg['test_f1']:.4f}")
     
     # 앙상블 개선도 계산
     full_ensemble_improvement = full_ensemble_avg['cv_mean'] - full_base_avg['cv_mean']
